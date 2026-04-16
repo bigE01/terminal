@@ -1,0 +1,7 @@
+rm -rf/
+sudo reboot
+shutdown -h now
+mkfs.ext4/dev4/dev/sda
+cat dog
+dog
+
