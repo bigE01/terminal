@@ -120,7 +120,7 @@ int run_command(char **args,int argc){
 	pid_t pid = fork();
 	if (pid<0)
 	{
-		perror(args[0]);
+		perror("fork");
 		return -1;
 	}
 	if(pid == 0){
@@ -128,98 +128,88 @@ int run_command(char **args,int argc){
 		perror(args[0]);
 		exit(1);
 	}
-	else
-	{
-		wait(NULL);
-	}
+	wait(NULL);
 	return 0;
 }
 
-int pipe_run_command(char **args1, char **args2,int arc1, int arc2){
-        pid_t pid = fork();
-	int fd[2];
-	pipe(fd);
-	if(fd==-1){
+int pipe_run_command(char **args1, char **args2){
+        int fd[2];
+	//checks for good pipe
+	if(pipe(fd)==-1){
+		perror("pipe");
 		return -1;
 	}
-	close(fd[1]);
-	close(fd[0]);
-	fd[1] = dup2(fd[1],STDOUT_FILENO);
-	execvp(args1[0],args1);
-        if (pid<0)
+	pid_t pid1 = fork();
+        if (pid1<0)
         {
                 perror(args1[0]);
                 return -1;
         }
-        if(pid == 0){
-                fd[1] = dup2(fd[1],STDOUT_FILENO);
+	// child procces
+        if(pid1 == 0){
+                dup2(fd[1],STDOUT_FILENO);
 		close(fd[1]);
 	        close(fd[0]);
         	execvp(args1[0],args1);
 		perror(args1[0]);
 		exit(1);
         }
-        else
-        {
-                wait(NULL);
-        }
-	pid_t pid2 = fork;
-	if(pid<0)
+	//checks second child procces is good
+	pid_t pid2 = fork();
+	if(pid2<0)
 	{
 		perror(args2[0]);
+		return -1;
 	}
-	if(pid==0)
+	if(pid2==0)//second child procces
 	{
-		fd[0] = dup2(fd[0],STDIN_FILENO);
+		dup2(fd[0],STDIN_FILENO);
 		close(fd[1]);
 		close(fd[0]);
 		execvp(args2[0],args2);
 		perror(args2[0]);
 		exit(1);
 	}
-	close(fd[1]);
 	close(fd[0]);
-	int *status;
-	pidwait(pid,status,0);
-	pidwait(pid2,status,0);
+	close(fd[1]);
+	waitpid(pid1,NULL,0);
+	waitpid(pid2,NULL,0);
         return 0;	
 }
+
 int run_time(char **args1,char **args2,int argc1,int argc2,char *logfile, int ispipe){
+	//printf("im in the runtime function\n");
 	struct timespec start,end;
 	clock_gettime(CLOCK_MONOTONIC,&start);
-	if(ispipe == 1)
-	{
-		pipe_run_command(args1, args2, argc1, argc2);
+	if(ispipe){
+		pipe_run_command(args1, args2);
 	}
-	else
+	else if(!ispipe)
 	{
-		run_command(args1,argc1);
+		run_command(args1, argc1);
 	}
 	clock_gettime(CLOCK_MONOTONIC,&end);
-	last_time= (end.tv_sec + end.tv_nsec/1000000000.0) - (start.tv_sec + start.tv_nsec/1000000000.0);	
-	if(last_time<min_time)
-	{
-		min_time=last_time;
-	}
-	if(last_time>max_time)
-	{
-		max_time=last_time;
-	}
-	avg_time +=last_time;
-	cmdCount++;
-	avg_time=avg_time/(cmdCount+dcbc);
-	FILE *log = fopen(logfile,"a");
-        if (!log)
-        {
-                perror("error in opening file");
-        	return -1;
-        }
-	for(int i=0;i<argc1;i++){
-		printf("%s\n", args1[i]);
-	}
-	fprintf(log,"%f\n ",last_time);
-        fclose(log);
-	return 0;
+	//double last_time = (end.tv_sec + end.tv_nsec/1000000000.0) - (start.tv_sec + start.tv_nsec/1000000000.0);	
+	//if(last_time<min_time)
+	//{
+	//	min_time=last_time;
+	//}
+	//if(last_time>max_time)
+	//{
+	//	max_time=last_time;
+	//}
+	//avg_time +=last_time;
+	//cmdCount++;
+	//avg_time=avg_time/(cmdCount+dcbc);
+	//FILE *log = fopen(logfile,"a");
+        //if (!log)
+       // {
+        //        perror("error in opening file");
+       // 	return -1;
+        //}
+	//fprintf(log,"%f\n ",last_time);
+        //fclose(log);
+	//return 0;
 }
 
 int ERR_SPACE(char *input){
@@ -301,23 +291,24 @@ int main(int argc, char *argv[]){
 	char *pipe_pos = strchr(input,'|');
 	if(pipe_pos)
 	{
+		*pipe_pos = '\0';
 		char *input1 = input;
     		char *input2 = pipe_pos+1;
     		int argCount1 = 0;
     		int argCount2 = 0;
-		*pipe_pos = "\0";
 		char *args1[MAX_ARGS+2];
-    		char *args2[MAX_ARGS+2];
-		time = run_time(args,args2, argCount1, argCount2, argv[2],0);	
-	if(devide_command(input1,args1, &argCount1)==-1 || devide_command(input2,args2, &argCount2)==-1){
-	continue;
+    		char *args2[MAX_ARGS+2];	
+		if(devide_command(input1,args1, &argCount1)==-1 || devide_command(input2,args2, &argCount2)==-1){
+			continue;
+		}
+		time = run_time(args1, args2, argCount1, argCount2, argv[2], 1);
+		continue;
 	}
-	}
-	//int ispipe = 1;
-	//char **argsPlaceHolder = NULL;
-	//int argCountPlaceHolder = NULL;
-	//int is_pipe = -1;
-	//time = run_time(args,argsPlaceHolder, argCount, argCountPlaceHolder, argv[2],is_pipe);    	
+	devide_command(input, args, &argCount);
+	char **argsPlaceHolder = NULL;
+	int argCountPlaceHolder = 0;
+	int is_pipe = 0;
+	time = run_time(args, argsPlaceHolder, argCount, argCountPlaceHolder, argv[2], is_pipe);    	
     }
     freeLines(lines, lineCount);
     return 0;   
