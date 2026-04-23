@@ -239,9 +239,9 @@ int devide_command(char *input,char **args,int *argc){
 	}
         args[argCount]=NULL;
         *argc = argCount;
-	if(strcmp("&",args[argCount]))
+	if(strcmp("&",args[argCount-1]))
 	{
-		args[argCount]=NULL;
+		args[argCount-1]=NULL;
 		return 1;
 	}
 	wait(NULL);
