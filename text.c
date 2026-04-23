@@ -195,7 +195,7 @@ int pipe_run_command(char **args1, char **args2){
 	close(fd[1]);
 
 	int status;
-	waitpid(pid1,NULL,0);
+	waitpid(pid1,&status,0);
 	if(WIFSIGNALED(status))
 		fprintf(stderr, "terminated by signal: %s\n", strsignal(WTERMSIG(status)));
 
@@ -213,7 +213,6 @@ int pipe_run_command(char **args1, char **args2){
 }
 
 int run_time(char **args1,char **args2,int argc1,int argc2,char *logfile, int ispipe, int backGround){
-	//printf("im in the runtime function\n");
 	struct timespec start,end;
 	clock_gettime(CLOCK_MONOTONIC,&start);
 	if(ispipe){
@@ -224,7 +223,7 @@ int run_time(char **args1,char **args2,int argc1,int argc2,char *logfile, int is
 		run_command(args1, argc1);
 	}
 	clock_gettime(CLOCK_MONOTONIC,&end);
-	double last_time = (end.tv_sec + end.tv_nsec/1000000000.0) - (start.tv_sec + start.tv_nsec/1000000000.0);	
+	last_time = (end.tv_sec + end.tv_nsec/1000000000.0) - (start.tv_sec + start.tv_nsec/1000000000.0);	
 
 	if(last_time<min_time) min_time=last_time;
 	if(last_time>max_time) max_time=last_time;
@@ -270,15 +269,11 @@ int devide_command(char *input,char **args,int *argc){
 	}
         args[argCount]=NULL;
         *argc = argCount-1;
-	printf("this is args before the if satatement: %s \n",args[argCount-1]);
-	if(strcmp("&",args[argCount-1]))
+	if(strcmp("&",args[argCount-1])==0)
 	{
-		printf("this is args after the statement: %s\n",args[argCount-1]);
-		printf("im in the first if command\n and should return 1");
 		args[argCount-1]=NULL;
 		return 1;
 	}
-	wait(NULL);
         return 0;
 }
 
@@ -329,7 +324,7 @@ int main(int argc, char *argv[]){
 	    cmdCount--;
         }
 	
-	char *pipe_pos = strchr(input,'|');
+	char *pipe_pos = strchr(input,"|");
 	if(pipe_pos)
 	{
 		*pipe_pos = '\0';
@@ -348,8 +343,6 @@ int main(int argc, char *argv[]){
 		{
 			backGround = 1;
 			printf("im in the second if command \n");
-			run_command(input1, argCount1);
-			run_command(input2, argCount2);
 			time = run_time(args1, args2, argCount1, argCount2, argv[2], 1, backGround);
 				
 		}
