@@ -4,6 +4,8 @@
 #include <errno.h>
 #include <time.h>
 #include <unistd.h>
+#include <sys/wait.h>
+#include <signal.h>
 
 #define MAX_INPUT 1024
 #define MAX_ARGS 6
@@ -128,8 +130,22 @@ int run_command(char **args,int argc){
 		perror(args[0]);
 		exit(1);
 	}
-	wait(NULL);
-	return 0;
+	int status;
+	waitpid(pid, &status, 0);
+	if(WIFEXITED(status))
+	{
+		int code = WEXITSTATUS(status);
+		if(code !=0)
+		{
+		       	fprintf(stderr,"process exited with error code : %d\n",code);
+			
+		}
+	}
+	else if(WIFSIGNALED(status))
+	{
+		fprintf(stderr,"terminated by signal: %s\n",strsignal(WTERMSIG(status)));
+	}
+return 0;
 }
 
 int pipe_run_command(char **args1, char **args2){
@@ -139,41 +155,60 @@ int pipe_run_command(char **args1, char **args2){
 		perror("pipe");
 		return -1;
 	}
+
 	pid_t pid1 = fork();
         if (pid1<0)
         {
-                perror(args1[0]);
+                perror("fork");
                 return -1;
         }
+
 	// child procces
         if(pid1 == 0){
-                dup2(fd[1],STDOUT_FILENO);
-		close(fd[1]);
-	        close(fd[0]);
+        
+		dup2(fd[1],STDOUT_FILENO);
+		close(fd[0]);
+	        close(fd[1]);
         	execvp(args1[0],args1);
 		perror(args1[0]);
 		exit(1);
         }
+
 	//checks second child procces is good
 	pid_t pid2 = fork();
-	if(pid2<0)
+	if(pid2 < 0)
 	{
-		perror(args2[0]);
+		perror("fork");
 		return -1;
 	}
+
 	if(pid2==0)//second child procces
 	{
 		dup2(fd[0],STDIN_FILENO);
-		close(fd[1]);
 		close(fd[0]);
+		close(fd[1]);
 		execvp(args2[0],args2);
 		perror(args2[0]);
 		exit(1);
 	}
 	close(fd[0]);
 	close(fd[1]);
+
+	int status;
 	waitpid(pid1,NULL,0);
-	waitpid(pid2,NULL,0);
+	if(WIFSIGNALED(status))
+		fprintf(stderr, "terminated by signal: %s\n", strsignal(WTERMSIG(status)));
+
+	waitpid(pid2, &status,0);
+	
+	if(WIFEXITED(status)){
+		int code = WEXITSTATUS(status);
+		if(code!=0)
+			fprintf(stderr, "process exited with error code: %d\n",code);
+	}
+	else if(WIFSIGNALED(status))
+		fprintf(stderr, "terminated by signal: %s\n", strsignal(WTERMSIG(status)));
+
         return 0;	
 }
 
@@ -184,31 +219,27 @@ int run_time(char **args1,char **args2,int argc1,int argc2,char *logfile, int is
 	if(ispipe){
 		pipe_run_command(args1, args2);
 	}
-	else if(!ispipe)
+	else
 	{
 		run_command(args1, argc1);
 	}
 	clock_gettime(CLOCK_MONOTONIC,&end);
-	//double last_time = (end.tv_sec + end.tv_nsec/1000000000.0) - (start.tv_sec + start.tv_nsec/1000000000.0);	
-	//if(last_time<min_time)
-	//{
-	//	min_time=last_time;
-	//}
-	//if(last_time>max_time)
-	//{
-	//	max_time=last_time;
-	//}
-	//avg_time +=last_time;
-	//cmdCount++;
-	//avg_time=avg_time/(cmdCount+dcbc);
-	//FILE *log = fopen(logfile,"a");
-        //if (!log)
-       // {
-        //        perror("error in opening file");
-       // 	return -1;
-        //}
-	//fprintf(log,"%f\n ",last_time);
-        //fclose(log);
+	double last_time = (end.tv_sec + end.tv_nsec/1000000000.0) - (start.tv_sec + start.tv_nsec/1000000000.0);	
+
+	if(last_time<min_time) min_time=last_time;
+	if(last_time>max_time) max_time=last_time;
+
+	avg_time +=last_time;
+	cmdCount++;
+	avg_time=avg_time/(cmdCount+dcbc);
+	FILE *log = fopen(logfile,"a");
+        if (!log)
+        {
+                perror("error in opening file");
+        	return -1;
+        }
+	fprintf(log,"%f\n ",last_time);
+        fclose(log);
 	return 0;
 }
 
@@ -238,9 +269,12 @@ int devide_command(char *input,char **args,int *argc){
                 return -1;
 	}
         args[argCount]=NULL;
-        *argc = argCount;
+        *argc = argCount-1;
+	printf("this is args before the if satatement: %s \n",args[argCount-1]);
 	if(strcmp("&",args[argCount-1]))
 	{
+		printf("this is args after the statement: %s\n",args[argCount-1]);
+		printf("im in the first if command\n and should return 1");
 		args[argCount-1]=NULL;
 		return 1;
 	}
@@ -300,17 +334,20 @@ int main(int argc, char *argv[]){
 	{
 		*pipe_pos = '\0';
 		char *input1 = input;
-    		char *input2 = pipe_pos+1;
+    		char *input2 = pipe_pos+3;
+
     		int argCount1 = 0;
     		int argCount2 = 0;
 		char *args1[MAX_ARGS+2];
     		char *args2[MAX_ARGS+2];	
+		
 		if(devide_command(input1,args1, &argCount1)== -1 || devide_command(input2,args2, &argCount2)== -1){
 			continue;
 		}
 		if(devide_command(input1,args1, &argCount1) == 1 || devide_command(input2, args2, &argCount2) == 1)
 		{
 			backGround = 1;
+			printf("im in the second if command \n");
 			run_command(input1, argCount1);
 			run_command(input2, argCount2);
 			time = run_time(args1, args2, argCount1, argCount2, argv[2], 1, backGround);
