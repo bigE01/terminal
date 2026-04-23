@@ -177,7 +177,7 @@ int pipe_run_command(char **args1, char **args2){
         return 0;	
 }
 
-int run_time(char **args1,char **args2,int argc1,int argc2,char *logfile, int ispipe){
+int run_time(char **args1,char **args2,int argc1,int argc2,char *logfile, int ispipe, int backGround){
 	//printf("im in the runtime function\n");
 	struct timespec start,end;
 	clock_gettime(CLOCK_MONOTONIC,&start);
@@ -209,7 +209,7 @@ int run_time(char **args1,char **args2,int argc1,int argc2,char *logfile, int is
         //}
 	//fprintf(log,"%f\n ",last_time);
         //fclose(log);
-	//return 0;
+	return 0;
 }
 
 int ERR_SPACE(char *input){
@@ -239,6 +239,12 @@ int devide_command(char *input,char **args,int *argc){
 	}
         args[argCount]=NULL;
         *argc = argCount;
+	if(strcmp("&",args[argCount]))
+	{
+		args[argCount]=NULL;
+		return 1;
+	}
+	wait(NULL);
         return 0;
 }
 
@@ -257,13 +263,14 @@ int main(int argc, char *argv[]){
     int lineCount = readFile(filepath, &lines); // Load dangerous commands
     char *args1[MAX_ARGS+2];
     char *args2[MAX_ARGS+2];
+    int backGround = 0;
 
     while(1){
         printPrompt();  // Disply the prompt
-	getUserInput(input, MAX_INPUT); // Get users commands
+	getUserInput(input, MAX_INPUT);// Get users commands
 	double time;
 	if(lineCount< 0)break;
-	if(strlen(input) == 0) continue;    // Empty string
+	if(strlen(input) == 0) continue;// Empty string
 	if(strcmp(input, "done") == 0){ 
 		printf("amount of dangerouse command blocked: %d\n and number of commands ran are: %d\n",dcbc, cmdCount);
 		break;    // Exit condition
@@ -298,18 +305,25 @@ int main(int argc, char *argv[]){
     		int argCount2 = 0;
 		char *args1[MAX_ARGS+2];
     		char *args2[MAX_ARGS+2];	
-		if(devide_command(input1,args1, &argCount1)==-1 || devide_command(input2,args2, &argCount2)==-1){
+		if(devide_command(input1,args1, &argCount1)== -1 || devide_command(input2,args2, &argCount2)== -1){
 			continue;
 		}
-		time = run_time(args1, args2, argCount1, argCount2, argv[2], 1);
+		if(devide_command(input1,args1, &argCount1) == 1 || devide_command(input2, args2, &argCount2) == 1)
+		{
+			backGround = 1;
+			run_command(input1, argCount1);
+			run_command(input2, argCount2);
+			time = run_time(args1, args2, argCount1, argCount2, argv[2], 1, backGround);
+				
+		}
 		continue;
 	}
 	devide_command(input, args, &argCount);
 	char **argsPlaceHolder = NULL;
 	int argCountPlaceHolder = 0;
 	int is_pipe = 0;
-	time = run_time(args, argsPlaceHolder, argCount, argCountPlaceHolder, argv[2], is_pipe);    	
+	time = run_time(args, argsPlaceHolder, argCount, argCountPlaceHolder, argv[2], is_pipe, backGround);    	
     }
     freeLines(lines, lineCount);
-    return 0;   
+    return 0;
 }
