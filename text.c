@@ -117,8 +117,7 @@ void freeLines(char **lines, int count){
     free(lines);    // Free the lines array
 }
 
-
-int run_command(char **args,int argc,int backGround){
+int run_command(char **args, int backGround){
 	if(!backGround)waitpid(pid , &status , 0);
 	pid_t pid = fork();
 	if (pid<0)
@@ -149,7 +148,7 @@ int run_command(char **args,int argc,int backGround){
 return 0;
 }
 
-int pipe_run_command(char **args1, char **args2){
+int pipe_run_command(char **args1, char *args2, int backGround){
         int fd[2];
 	//checks for good pipe
 	if(pipe(fd)==-1){
@@ -217,11 +216,11 @@ int run_time(char **args1,char **args2,int argc1,int argc2,char *logfile, int is
 	struct timespec start,end;
 	clock_gettime(CLOCK_MONOTONIC,&start);
 	if(ispipe){
-		pipe_run_command(args1, args2);
+		pipe_run_command(args1, args2, backGround);
 	}
 	else
 	{
-		run_command(args1, argc1);
+		run_command(args1, backGround);
 	}
 	clock_gettime(CLOCK_MONOTONIC,&end);
 	last_time = (end.tv_sec + end.tv_nsec/1000000000.0) - (start.tv_sec + start.tv_nsec/1000000000.0);	
@@ -272,6 +271,7 @@ int devide_command(char *input,char **args,int *argc){
         *argc = argCount;
 	if(strcmp("&",args[argCount-1])==0)
 	{
+		*argc = argc - 1;
 		args[argCount-1]=NULL;
 		return 1;
 	}
@@ -291,9 +291,8 @@ int main(int argc, char *argv[]){
     char input[MAX_INPUT];  // Buffer for user input
     const char *filepath = argv[1]; // Path to dangerous commands file
     int lineCount = readFile(filepath, &lines); // Load dangerous commands
-    char *args1[MAX_ARGS+2];
-    char *args2[MAX_ARGS+2];
     int backGround = 0;
+    int devideOutput;
 
 
     while(1){
@@ -316,7 +315,7 @@ int main(int argc, char *argv[]){
 		continue;
 	}
         if (ERR_SPACE(input)==-1) continue;
-	char *command = simular_to(input,lines,lineCount);
+		char *command = simular_to(input,lines,lineCount);
         if (searchResults == 2){    // If input is identical to the dangerous command, block it.
            printf("ERR: Dangerous command detected (\"%s\"). Execution prevened.\n", command);
             dcbc++; // Update dangerous command count.
@@ -328,12 +327,12 @@ int main(int argc, char *argv[]){
 	    cmdCount--;
         }
 	
-	char *pipe_pos = strstr(input," | ");
+	char *pipe_pos = strstr(input,"|");
 	if(pipe_pos)
 	{
 		*pipe_pos = '\0';
 		char *input1 = input;
-    		char *input2 = pipe_pos+3;
+    		char *input2 = pipe_pos+1;
 
     		int argCount1 = 0;
     		int argCount2 = 0;
@@ -342,19 +341,23 @@ int main(int argc, char *argv[]){
 		
 		int res1 = devide_command(input1, args1, &argCount1);
     		int res2 = devide_command(input2, args2, &argCount2);
-		if(res1 == -1 || res2 == -1)
+		//check for errors
+		if(res1 == -1 || res2 == -1 || res1 == 1)
 		{
 			continue;
 		}
-		if(res1 == 1 || res2 == 1) backGround = 1;
+		if(res2 == 1)
+		{       
+			backGround = 1;
 			time = run_time(args1, args2, argCount1, argCount2, argv[2], 1, backGround);
+		}
 	}
-	devide_command(input, args, &argCount);
 	char **argsPlaceHolder = NULL;
 	int argCountPlaceHolder = 0;
 	int is_pipe = 0;
 	time = run_time(args, argsPlaceHolder, argCount, argCountPlaceHolder, argv[2], is_pipe, backGround);    	
     }
+    //makes sure the memory is free
     freeLines(lines, lineCount);
     return 0;
 }
