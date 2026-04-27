@@ -131,20 +131,22 @@ int run_command(char **args, int backGround){
 	}
 	if(!backGround)
 	{
-	int status;
-	waitpid(pid, &status, 0);
-	if(WIFEXITED(status))
-	{
-		int code = WEXITSTATUS(status);
-		if(code !=0)
+	//	int status;
+		waitpid(pid, NULL, 0);
+		printf("%d\n",backGround);
+	/*	if(WIFEXITED(status))
 		{
-		       	fprintf(stderr,"process exited with error code : %d\n",code);	
-		}
-		else if(WIFSIGNALED(status))
-		{
-			fprintf(stderr,"terminated by signal: %s\n",strsignal(WTERMSIG(status)));
-		}
-	}
+			int code = WEXITSTATUS(status);
+			if(code !=0)
+			{
+			       	fprintf(stderr,"process exited with error code : %d\n",code);	
+			}
+			else if(WIFSIGNALED(status))
+			{
+				fprintf(stderr,"terminated by signal: %s\n",strsignal(WTERMSIG(status)));
+			}
+		}*/
+		printf("test");
 	}
 return 0;
 }
@@ -309,12 +311,6 @@ int main(int argc, char *argv[]){
 		break;    // Exit condition
 	}
 	int searchResults = searchLines(input, lines, lineCount);   // Check if input is dangerouse
-	char input_copy[MAX_INPUT];
-	strcpy(input_copy,input);
-	if (devide_command(input_copy,args,&argCount)==-1)
-	{	
-		continue;
-	}
         if (ERR_SPACE(input)==-1) continue;
 		char *command = simular_to(input,lines,lineCount);
         if (searchResults == 2){    // If input is identical to the dangerous command, block it.
@@ -349,9 +345,21 @@ int main(int argc, char *argv[]){
 		}
 		if(res2 == 1)
 		{       
+			
 			backGround = 1;
 			time = run_time(args1, args2, argCount1, argCount2, argv[2], 1, backGround);
 		}
+	}	
+	char input_copy[MAX_INPUT];
+        strcpy(input_copy,input);
+	devideOutput = devide_command(input_copy,args,&argCount);
+        if (devideOutput == -1)
+        {
+                continue;
+        }
+	if(devideOutput == -1)
+	{
+	backGround = 1;
 	}
 	char **argsPlaceHolder = NULL;
 	int argCountPlaceHolder = 0;
