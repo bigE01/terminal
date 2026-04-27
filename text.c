@@ -118,7 +118,6 @@ void freeLines(char **lines, int count){
 }
 
 int run_command(char **args, int backGround){
-	if(!backGround)waitpid(pid , &status , 0);
 	pid_t pid = fork();
 	if (pid<0)
 	{
@@ -130,6 +129,8 @@ int run_command(char **args, int backGround){
 		perror(args[0]);
 		exit(1);
 	}
+	if(!backGround)
+	{
 	int status;
 	waitpid(pid, &status, 0);
 	if(WIFEXITED(status))
@@ -137,13 +138,13 @@ int run_command(char **args, int backGround){
 		int code = WEXITSTATUS(status);
 		if(code !=0)
 		{
-		       	fprintf(stderr,"process exited with error code : %d\n",code);
-			
+		       	fprintf(stderr,"process exited with error code : %d\n",code);	
+		}
+		else if(WIFSIGNALED(status))
+		{
+			fprintf(stderr,"terminated by signal: %s\n",strsignal(WTERMSIG(status)));
 		}
 	}
-	else if(WIFSIGNALED(status))
-	{
-		fprintf(stderr,"terminated by signal: %s\n",strsignal(WTERMSIG(status)));
 	}
 return 0;
 }
