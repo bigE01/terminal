@@ -298,6 +298,7 @@ int main(int argc, char *argv[]){
 
 
     while(1){
+	backGround=0;
         printPrompt();  // Disply the prompt
 	getUserInput(input, MAX_INPUT);// Get users commands
 	double time;
@@ -312,7 +313,7 @@ int main(int argc, char *argv[]){
 	strcpy(input_copy,input);
 	if (devide_command(input_copy,args,&argCount)==-1)
 	{	
-		continue;
+		uontinue;
 	}
         if (ERR_SPACE(input)==-1) continue;
 	char *command = simular_to(input,lines,lineCount);
