@@ -118,7 +118,8 @@ void freeLines(char **lines, int count){
 }
 
 
-int run_command(char **args,int argc){
+int run_command(char **args,int argc,int backGround){
+	if(!backGround)waitpid(pid , &status , 0);
 	pid_t pid = fork();
 	if (pid<0)
 	{
@@ -293,11 +294,10 @@ int main(int argc, char *argv[]){
     char *args1[MAX_ARGS+2];
     char *args2[MAX_ARGS+2];
     int backGround = 0;
-    int res1 = devide_command(input1, args1, &argCount1);
-    int res2 = devide_command(input2, args2, &argCount2);
 
 
     while(1){
+	while(waitpid(-1,NULL,WNOHANG)>0);
 	backGround=0;
         printPrompt();  // Disply the prompt
 	getUserInput(input, MAX_INPUT);// Get users commands
@@ -313,7 +313,7 @@ int main(int argc, char *argv[]){
 	strcpy(input_copy,input);
 	if (devide_command(input_copy,args,&argCount)==-1)
 	{	
-		uontinue;
+		continue;
 	}
         if (ERR_SPACE(input)==-1) continue;
 	char *command = simular_to(input,lines,lineCount);
@@ -328,7 +328,7 @@ int main(int argc, char *argv[]){
 	    cmdCount--;
         }
 	
-	char *pipe_pos = strchr(input," | ");
+	char *pipe_pos = strstr(input," | ");
 	if(pipe_pos)
 	{
 		*pipe_pos = '\0';
@@ -340,6 +340,8 @@ int main(int argc, char *argv[]){
 		char *args1[MAX_ARGS+2];
     		char *args2[MAX_ARGS+2];	
 		
+		int res1 = devide_command(input1, args1, &argCount1);
+    		int res2 = devide_command(input2, args2, &argCount2);
 		if(res1 == -1 || res2 == -1)
 		{
 			continue;
@@ -352,7 +354,6 @@ int main(int argc, char *argv[]){
 	int argCountPlaceHolder = 0;
 	int is_pipe = 0;
 	time = run_time(args, argsPlaceHolder, argCount, argCountPlaceHolder, argv[2], is_pipe, backGround);    	
-    	backGround = 0;
     }
     freeLines(lines, lineCount);
     return 0;
