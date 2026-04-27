@@ -268,7 +268,7 @@ int devide_command(char *input,char **args,int *argc){
                 return -1;
 	}
         args[argCount]=NULL;
-        *argc = argCount-1;
+        *argc = argCount;
 	if(strcmp("&",args[argCount-1])==0)
 	{
 		args[argCount-1]=NULL;
@@ -293,6 +293,9 @@ int main(int argc, char *argv[]){
     char *args1[MAX_ARGS+2];
     char *args2[MAX_ARGS+2];
     int backGround = 0;
+    int res1 = devide_command(input1, args1, &argCount1);
+    int res2 = devide_command(input2, args2, &argCount2);
+
 
     while(1){
         printPrompt();  // Disply the prompt
@@ -324,7 +327,7 @@ int main(int argc, char *argv[]){
 	    cmdCount--;
         }
 	
-	char *pipe_pos = strchr(input,"|");
+	char *pipe_pos = strchr(input," | ");
 	if(pipe_pos)
 	{
 		*pipe_pos = '\0';
@@ -336,23 +339,19 @@ int main(int argc, char *argv[]){
 		char *args1[MAX_ARGS+2];
     		char *args2[MAX_ARGS+2];	
 		
-		if(devide_command(input1,args1, &argCount1)== -1 || devide_command(input2,args2, &argCount2)== -1){
+		if(res1 == -1 || res2 == -1)
+		{
 			continue;
 		}
-		if(devide_command(input1,args1, &argCount1) == 1 || devide_command(input2, args2, &argCount2) == 1)
-		{
-			backGround = 1;
-			printf("im in the second if command \n");
+		if(res1 == 1 || res2 == 1) backGround = 1;
 			time = run_time(args1, args2, argCount1, argCount2, argv[2], 1, backGround);
-				
-		}
-		continue;
 	}
 	devide_command(input, args, &argCount);
 	char **argsPlaceHolder = NULL;
 	int argCountPlaceHolder = 0;
 	int is_pipe = 0;
 	time = run_time(args, argsPlaceHolder, argCount, argCountPlaceHolder, argv[2], is_pipe, backGround);    	
+    	backGround = 0;
     }
     freeLines(lines, lineCount);
     return 0;
