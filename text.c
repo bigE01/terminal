@@ -131,10 +131,9 @@ int run_command(char **args, int backGround){
 	}
 	if(!backGround)
 	{
-	//	int status;
-		waitpid(pid, NULL, 0);
-		printf("%d\n",backGround);
-	/*	if(WIFEXITED(status))
+		int status;
+		waitpid(pid, &status, 0);
+		if(WIFEXITED(status))
 		{
 			int code = WEXITSTATUS(status);
 			if(code !=0)
@@ -145,8 +144,7 @@ int run_command(char **args, int backGround){
 			{
 				fprintf(stderr,"terminated by signal: %s\n",strsignal(WTERMSIG(status)));
 			}
-		}*/
-		printf("test");
+		}
 	}
 return 0;
 }
@@ -158,17 +156,14 @@ int pipe_run_command(char **args1, char *args2, int backGround){
 		perror("pipe");
 		return -1;
 	}
-
 	pid_t pid1 = fork();
         if (pid1<0)
         {
                 perror("fork");
                 return -1;
         }
-
 	// child procces
         if(pid1 == 0){
-        
 		dup2(fd[1],STDOUT_FILENO);
 		close(fd[0]);
 	        close(fd[1]);
@@ -176,7 +171,6 @@ int pipe_run_command(char **args1, char *args2, int backGround){
 		perror(args1[0]);
 		exit(1);
         }
-
 	//checks second child procces is good
 	pid_t pid2 = fork();
 	if(pid2 < 0)
@@ -184,7 +178,6 @@ int pipe_run_command(char **args1, char *args2, int backGround){
 		perror("fork");
 		return -1;
 	}
-
 	if(pid2==0)//second child procces
 	{
 		dup2(fd[0],STDIN_FILENO);
@@ -196,7 +189,8 @@ int pipe_run_command(char **args1, char *args2, int backGround){
 	}
 	close(fd[0]);
 	close(fd[1]);
-
+	if(!backGround)
+	{
 	int status;
 	waitpid(pid1,&status,0);
 	if(WIFSIGNALED(status))
@@ -211,7 +205,7 @@ int pipe_run_command(char **args1, char *args2, int backGround){
 	}
 	else if(WIFSIGNALED(status))
 		fprintf(stderr, "terminated by signal: %s\n", strsignal(WTERMSIG(status)));
-
+	}
         return 0;	
 }
 
@@ -339,8 +333,13 @@ int main(int argc, char *argv[]){
 		int res1 = devide_command(input1, args1, &argCount1);
     		int res2 = devide_command(input2, args2, &argCount2);
 		//check for errors
-		if(res1 == -1 || res2 == -1 || res1 == 1)
+		if(res1 == -1 || res2 == -1)
 		{
+			continue;
+		}
+		if(res1 == 1)
+		{
+			printf("invalid arg");
 			continue;
 		}
 		if(res2 == 1)
@@ -357,9 +356,9 @@ int main(int argc, char *argv[]){
         {
                 continue;
         }
-	if(devideOutput == -1)
+	if(devideOutput == 1)
 	{
-	backGround = 1;
+		backGround = 1;
 	}
 	char **argsPlaceHolder = NULL;
 	int argCountPlaceHolder = 0;
