@@ -252,6 +252,11 @@ int ERR_SPACE(char *input){
 	return 0;
 }
 
+void error_redirect(char error,FILE *errorFile){
+	
+	
+	
+}
 int devide_command(char *input,char **args,int *argc){
         int argCount=0;
         char *token = strtok(input," \t\n");
@@ -275,6 +280,9 @@ int devide_command(char *input,char **args,int *argc){
         return 0;
 }
 
+void something(){
+	printf("works");
+}
 
 int main(int argc, char *argv[]){
     if (argc != 3){
@@ -317,10 +325,38 @@ int main(int argc, char *argv[]){
 	    dcbc++;
 	    cmdCount--;
         }
-	
+	char *biggerThan = strstr(input,"2>");
 	char *pipe_pos = strstr(input,"|");
-	if(pipe_pos)
+	
+
+	if(biggerThan)
 	{
+		printf("works");
+		char *filename;
+		int append=0;
+		//checks if we append or overwrite
+		if(strstr(input,"2>>"))
+		{	
+			*filename = biggerThan+3;
+			append = 1;
+		} 
+		else
+		{
+			*filename = biggerThan+2;
+		}
+		//skips empty spaces
+		while(*filename == " ")
+		{
+			filename ++;
+		}
+		char *end = filename;
+		while(*end && *end != " ")
+		{
+			end++;
+		}
+		*end = "\0";
+	}
+	if(pipe_pos){
 		*pipe_pos = '\0';
 		char *input1 = input;
     		char *input2 = pipe_pos+1;
@@ -344,7 +380,6 @@ int main(int argc, char *argv[]){
 		}
 		if(res2 == 1)
 		{       
-			
 			backGround = 1;
 			time = run_time(args1, args2, argCount1, argCount2, argv[2], 1, backGround);
 		}
