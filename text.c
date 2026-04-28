@@ -337,24 +337,24 @@ int main(int argc, char *argv[]){
 		//checks if we append or overwrite
 		if(strstr(input,"2>>"))
 		{	
-			*filename = biggerThan+3;
+			filename = biggerThan+3;
 			append = 1;
 		} 
 		else
 		{
-			*filename = biggerThan+2;
+			filename = biggerThan+2;
 		}
 		//skips empty spaces
 		while(*filename == " ")
 		{
 			filename ++;
 		}
-		char *end = filename;
+	/*	char *end = filename;
 		while(*end && *end != " ")
 		{
 			end++;
 		}
-		*end = "\0";
+		*end = "\0";*/
 	}
 	if(pipe_pos){
 		*pipe_pos = '\0';
