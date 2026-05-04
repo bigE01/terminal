@@ -362,6 +362,7 @@ int main(int argc, char *argv[]){
 		}
 		dup2(fd	,STDERR_FILENO);
 		close(fd);
+		*biggerThan = '\0';
 	}
 	if(pipe_pos){
 		*pipe_pos = '\0';
