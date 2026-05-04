@@ -138,19 +138,15 @@ int run_command(char **args, int backGround){
 		{
 			int code = WEXITSTATUS(status);
 			if(code !=0)
-			{
 			       	fprintf(stderr,"process exited with error code : %d\n",code);	
-			}
-			else if(WIFSIGNALED(status))
-			{
-				fprintf(stderr,"terminated by signal: %s\n",strsignal(WTERMSIG(status)));
-			}
 		}
+		else if(WIFSIGNALED(status))
+                	fprintf(stderr,"terminated by signal: %s\n",strsignal(WTERMSIG(status)));
 	}
 return 0;
 }
 
-int pipe_run_command(char **args1, char *args2, int backGround){
+int pipe_run_command(char **args1, char **args2, int backGround){
         int fd[2];
 	//checks for good pipe
 	if(pipe(fd)==-1){
@@ -274,7 +270,7 @@ int devide_command(char *input,char **args,int *argc){
         *argc = argCount;
 	if(strcmp("&",args[argCount-1])==0)
 	{
-		*argc = argc - 1;
+		*argc = argCount - 1;
 		args[argCount-1]=NULL;
 		return 1;
 	}
@@ -306,6 +302,8 @@ int main(int argc, char *argv[]){
 	backGround=0;
         printPrompt();  // Disply the prompt
 	getUserInput(input, MAX_INPUT);// Get users commands
+	char input_copy[MAX_INPUT];
+        strcpy(input_copy,input);
 	double time;
 	if(lineCount< 0)break;
 	if(strlen(input) == 0) continue;// Empty string
@@ -327,7 +325,7 @@ int main(int argc, char *argv[]){
 	    cmdCount--;
         }
 	char *biggerThan = strstr(input,"2>");
-	char *pipe_pos = strstr(input,"|");
+	char *pipe_pos = strstr(input," | ");
 	
 
 	if(biggerThan)
@@ -351,23 +349,24 @@ int main(int argc, char *argv[]){
 			filename ++;
 		}
 		char *end = filename;
-		while(*end && *end != " ")
+		while(*end && *end != ' ')
 		{
 			end++;
 		}
-		*end = "\0";
-		int check = open(filename,O_WRONLY);
-		if(check > 0)
+		*end = '\0';
+		int fd = open(filename,O_WRONLY | O_CREAT | (append ? O_APPEND : O_TRUNC), 0644);
+		if(fd > 0)
 		{
 			perror("failed to open file");
+			continue;
 		}
-		dup2(filename,stderr);
-		close(filename);
+		dup2(fd	,STDERR_FILENO);
+		close(fd);
 	}
 	if(pipe_pos){
 		*pipe_pos = '\0';
 		char *input1 = input;
-    		char *input2 = pipe_pos+1;
+    		char *input2 = pipe_pos+3;
 
     		int argCount1 = 0;
     		int argCount2 = 0;
@@ -377,23 +376,16 @@ int main(int argc, char *argv[]){
 		int res1 = devide_command(input1, args1, &argCount1);
     		int res2 = devide_command(input2, args2, &argCount2);
 		//check for errors
-		if(res1 == -1 || res2 == -1)
-		{
-			continue;
-		}
+		if(res1 == -1 || res2 == -1) continue;
 		if(res1 == 1)
 		{
 			printf("invalid arg");
 			continue;
 		}
-		if(res2 == 1)
-		{       
-			backGround = 1;
+		if(res2 == 1) backGround = 1;
 			time = run_time(args1, args2, argCount1, argCount2, argv[2], 1, backGround);
-		}
-	}	
-	char input_copy[MAX_INPUT];
-        strcpy(input_copy,input);
+			continue;
+	}
 	devideOutput = devide_command(input_copy,args,&argCount);
         if (devideOutput == -1)
         {
