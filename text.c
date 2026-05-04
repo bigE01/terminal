@@ -6,6 +6,7 @@
 #include <unistd.h>
 #include <sys/wait.h>
 #include <signal.h>
+#include <fcntl.h>
 
 #define MAX_INPUT 1024
 #define MAX_ARGS 6
@@ -345,16 +346,23 @@ int main(int argc, char *argv[]){
 			filename = biggerThan+2;
 		}
 		//skips empty spaces
-		while(*filename == " ")
+		while(*filename == ' ')
 		{
 			filename ++;
 		}
-	/*	char *end = filename;
+		char *end = filename;
 		while(*end && *end != " ")
 		{
 			end++;
 		}
-		*end = "\0";*/
+		*end = "\0";
+		int check = open(filename,O_WRONLY);
+		if(check > 0)
+		{
+			perror("failed to open file");
+		}
+		dup2(filename,stderr);
+		close(filename);
 	}
 	if(pipe_pos){
 		*pipe_pos = '\0';
